@@ -1,5 +1,6 @@
 <?php
 
+    //
     $arrayBuku = [
         [
             'name' => 'Pemograman PHP 7',
@@ -44,57 +45,45 @@
         ],
     ];
 
+    //ambil data dari database
+    include("koneksi.php");
+
+    $sql = "SELECT * FROM data_buku WHERE rating != '0'";
+    $query = mysqli_query($koneksi, $sql);
+    
+    $arrayBuku = Array();
+    while($data = mysqli_fetch_array($query)){
+        
+        $sql2 = "SELECT * FROM user a, ulasan_user b WHERE a.id = b.user_id AND b.buku_no = '$data[No]'";
+        $query2 = mysqli_query($koneksi, $sql2);
+
+        $arrayDatabase = null;
+        while($data2 = mysqli_fetch_array($query2)){
+            $arrayDatabase[$data2['name']] = $data2['rating'];
+        }
+
+        $databaseArray = [
+            'name' => $data['jdl_buku'],
+            'rating' => $arrayDatabase
+        ];
+
+        array_push($arrayBuku, $databaseArray);
+        unset($arrayDatabase);
+    }
+    
+    //end ambil data dari database
+
     //Pearson Correlation
 
     //run person corelation
-    function personCorrelation($arrayBuku){
+    function collaborativeFiltering($arrayBuku){
         $arrayAverageAll = average($arrayBuku);
         $arrayInteractionAll = interaction($arrayAverageAll);
         $arraySimilarity = similarity($arrayInteractionAll);
         $arrayNeighborAll = neighbor($arrayBuku, $arraySimilarity);
         $arrayPredictionAll = prediction($arrayNeighborAll);
 
-       
-        // foreach($arrayNeighborAll as $result){
-        //     echo $result['name'];
-        // }
-        // $arrayPredictionAll = Array();
-        // $predictionData = Array();
-
-        // $result3['key'] = 'simu';
-        // $prediction['key'] = 'key1';
-        // $prediction['value'] = '1';
-        // $prediction[$result3['key']] = 'x1';
-        // array_push($predictionData, $prediction);
-
-        // $prediction['key'] = 'key2';
-        // $prediction['value'] = '2';
-        // $prediction[$result3['key']] = 'x2';
-        // array_push($predictionData, $prediction);
-        
-
-        // array_push($arrayPredictionAll, $predictionData);
-
-        // $arrayPredictionAll = [
-        //     [
-        //         'key' => 'key1',
-        //         'apalah' => 'xx'
-        //     ],
-        //     [
-        //         'key' => 'key2',
-        //         'apalah' => 'yy'
-        //     ]
-        //     ];
-        
-        // foreach($arrayPredictionAll as $key => $value){
-        //     // $arrayPredictionAll[$key]['key'] = 'Ragil '.$key;
-        //     unset($arrayPredictionAll[0]['key']);
-        // }
-        
-        // // if(array_key_exists())
-        print_r($arrayPredictionAll);
-
-        // print_r($arrayPredictionAll);
+        return $arrayPredictionAll;
     }
     //end run person corelation
 
@@ -179,17 +168,19 @@
                         $rateOld++;
                     }
                     
-                    $interaction['interaction'] = [
-                        'name' => $result['name'],
-                        'nameTwo' => $result2['name'],
-                        'rating' => $rating1,
-                        'ratingTwo' => $rating2,
-                        'ratingElse' => $rating3,
-                        'ratingElseTwo' => $rating4,
-                        'average' => $result['average'],
-                        'averageTwo' => $result2['average']
-                    ];
-                    array_push($arrayInteractionAll, $interaction['interaction']);
+                    if($rating1 != null && $rating2 != null){
+                        $interaction['interaction'] = [
+                            'name' => $result['name'],
+                            'nameTwo' => $result2['name'],
+                            'rating' => $rating1,
+                            'ratingTwo' => $rating2,
+                            'ratingElse' => $rating3,
+                            'ratingElseTwo' => $rating4,
+                            'average' => $result['average'],
+                            'averageTwo' => $result2['average']
+                        ];
+                        array_push($arrayInteractionAll, $interaction['interaction']);
+                    }
                 }
                 $cek['countNew']++;
             }
@@ -211,21 +202,24 @@
         $arraySimilarity = Array();
 
         foreach($rumusFoot as $result){
-            $similarityArray = [
-                'name' => $result['name'],
-                'nameTwo' => $result['nameTwo'],
-                'rating' => $result['rating'],
-                'ratingTwo' => $result['ratingTwo'],
-                'ratingElse' => $result['ratingElse'],
-                'ratingElseTwo' => $result['ratingElseTwo'],
-                'average' => $result['average'],
-                'averageTwo' => $result['averageTwo'],
-                'rumusHead' => $result['rumusHead'],
-                'rumusFoot' => $result['rumusFoot'],
-                'similarity' => $result['rumusHead']/$result['rumusFoot']
 
-            ];
-            array_push($arraySimilarity, $similarityArray);
+            if($result['rumusFoot'] != 0){
+                $similarityArray = [
+                    'name' => $result['name'],
+                    'nameTwo' => $result['nameTwo'],
+                    'rating' => $result['rating'],
+                    'ratingTwo' => $result['ratingTwo'],
+                    'ratingElse' => $result['ratingElse'],
+                    'ratingElseTwo' => $result['ratingElseTwo'],
+                    'average' => $result['average'],
+                    'averageTwo' => $result['averageTwo'],
+                    'rumusHead' => $result['rumusHead'],
+                    'rumusFoot' => $result['rumusFoot'],
+                    'similarity' => $result['rumusHead']/$result['rumusFoot']
+    
+                ];
+                array_push($arraySimilarity, $similarityArray);
+            }
         }
 
         return $arraySimilarity;
@@ -389,10 +383,11 @@
 
             $userDataArray = Array();
             $userData = Array();
+            $cekData = Array();
             foreach($arrayPredictionData as $result3){
      
                 foreach($result3 as $result4){
-                    if(array_key_exists($result4['key'], $userData)){
+                    if(array_key_exists($result4['key'], $cekData)){
                         if(count($userDataArray) > 0){
                             foreach($userDataArray as $key2 => $value2){
                                 if(array_key_exists($result4['key'], $userDataArray[$key2])){
@@ -403,11 +398,10 @@
                                 }
                             }
                         }
-                        // $userData[$result4['key'].'Val'] = ($result4['value']*$result4['similarity'])+$userData[$result4['key'].'Val'];
-                        // $userData[$result4['key'].'Sim'] = $userData[$result4['key'].'Sim']+$result4['similarity'];
                     }else{
                         if(count($userDataArray) > 0){
                             foreach($userDataArray as $key2 => $value2){
+
                                 if(array_key_exists($result4['key'], $userDataArray[$key2])){
                                     if($userDataArray[$key2][$result4['key']] == $result4['key']){
                                         unset($userData['key']);
@@ -418,16 +412,19 @@
                                         $userDataArray[$key2][$result4['key'].'Sim'] = $result4['similarity']+$userDataArray[$key2][$result4['key'].'Sim'];
                                     }
                                 }else{
+                                    $cekData[$result4['key']] = $result4['key'];
                                     unset($userData);
                                     $userData['key'] = $result4['key'];
                                     $userData[$result4['key']] = $result4['key'];
                                     $userData[$result4['key'].'Val'] = $result4['value'];
                                     $userData[$result4['key'].'Sim'] = $result4['similarity'];
                                     array_push($userDataArray, $userData);
+                                    break;
                                 }
                                 
                             }
                         }else{
+                            $cekData[$result4['key']] = $result4['key'];
                             unset($userData);
                             $userData['key'] = $result4['key'];
                             $userData[$result4['key']] = $result4['key'];
@@ -435,11 +432,6 @@
                             $userData[$result4['key'].'Sim'] = $result4['similarity'];
                             array_push($userDataArray, $userData);
                         }
-
-                        // $userData[$result4['key']] = $result4['key'];
-                        //     $userData[$result4['key'].'Val'] = $result4['value']*$result4['similarity'];
-                        //     $userData[$result4['key'].'Sim'] = $result4['similarity'];
-                        //     array_push($userDataArray, $userData);
                     }
                 }
 
@@ -447,7 +439,8 @@
             
             $predictionFinal = Array();
             foreach($userDataArray as $result5){
-                $predic[$result5['key']] = $result5[$result5['key'].'Val']/$result5[$result5['key'].'Sim'];
+                $predic['user'] = $result5['key'];
+                $predic['rating'] = round($result5[$result5['key'].'Val']/$result5[$result5['key'].'Sim']);
                 array_push($predictionFinal, $predic);
                 unset($predic);
             }
@@ -467,4 +460,4 @@
 
     //end Pearson Correlation
     
-    personCorrelation($arrayBuku);
+//=================================SECTION TESTING==================================================
